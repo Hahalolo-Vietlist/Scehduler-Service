@@ -1,0 +1,36 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Job {
+  id                    String    @id @default(uuid())
+  name                  String
+  apiUrl                String
+  method                String    @default("GET")
+  headers               Json?
+  body                  Json?
+  interval              String    // Cron expression
+  timezone              String    @default("UTC") // EST/PST/CST/UTC
+  enabled               Boolean   @default(true)
+  lastRun               DateTime?
+  lastRunStatus         String?
+  lastRunError          String?
+  executionCount        Int       @default(0)
+  errorCount            Int       @default(0)
+  targetServiceClientId String?   // Client ID for target service
+  targetServiceSecret   String?   // Secret for target service
+  createdBy             String
+  updatedBy             String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  @@map("jobs")
+}

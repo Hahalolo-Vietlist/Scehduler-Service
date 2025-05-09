@@ -1,0 +1,257 @@
+{
+  "info": {
+    "name": "Scheduler Service API",
+    "description": "API collection for the Scheduler Service that manages scheduled API calls",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "12345678"
+  },
+  "item": [
+    {
+      "name": "Job Management",
+      "description": "Endpoints for managing scheduled jobs",
+      "item": [
+        {
+          "name": "Get All Jobs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{refresh_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/scheduler",
+              "host": ["{{base_url}}"],
+              "path": ["scheduler"]
+            },
+            "description": "Get all scheduled jobs"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Job",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{refresh_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Example Job\",\n    \"apiUrl\": \"https://api.example.com/endpoint\",\n    \"method\": \"GET\",\n    \"headers\": {\n        \"Content-Type\": \"application/json\"\n    },\n    \"body\": {},\n    \"interval\": \"*/5 * * * *\",\n    \"timezone\": \"UTC\",\n    \"targetServiceClientId\": \"client_a1b2c3d4e5f6\",\n    \"targetServiceSecret\": \"secret_z9y8x7w6v5u4\",\n    \"enabled\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/scheduler",
+              "host": ["{{base_url}}"],
+              "path": ["scheduler"]
+            },
+            "description": "Create a new scheduled job"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Worker Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{refresh_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/scheduler/status/workers",
+              "host": ["{{base_url}}"],
+              "path": ["scheduler", "status", "workers"]
+            },
+            "description": "Get status information about worker threads"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Job by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{refresh_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/scheduler/{{job_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["scheduler", "{{job_id}}"]
+            },
+            "description": "Get a specific job by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Job",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{refresh_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Updated Job Name\",\n    \"interval\": \"0 */2 * * *\",\n    \"targetServiceClientId\": \"client_a1b2c3d4e5f6\",\n    \"targetServiceSecret\": \"secret_z9y8x7w6v5u4\",\n    \"enabled\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/scheduler/{{job_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["scheduler", "{{job_id}}"]
+            },
+            "description": "Update an existing job"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Job",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{refresh_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/scheduler/{{job_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["scheduler", "{{job_id}}"]
+            },
+            "description": "Delete a scheduled job"
+          },
+          "response": []
+        },
+        {
+          "name": "Pause Job",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{refresh_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/scheduler/{{job_id}}/pause",
+              "host": ["{{base_url}}"],
+              "path": ["scheduler", "{{job_id}}", "pause"]
+            },
+            "description": "Pause a scheduled job"
+          },
+          "response": []
+        },
+        {
+          "name": "Resume Job",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{refresh_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/scheduler/{{job_id}}/resume",
+              "host": ["{{base_url}}"],
+              "path": ["scheduler", "{{job_id}}", "resume"]
+            },
+            "description": "Resume a paused job"
+          },
+          "response": []
+        },
+        {
+          "name": "Run Job Now",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{refresh_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/scheduler/{{job_id}}/run",
+              "host": ["{{base_url}}"],
+              "path": ["scheduler", "{{job_id}}", "run"]
+            },
+            "description": "Run a scheduled job immediately"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Set the accessToken as a cookie",
+          "if (pm.environment.get('access_token')) {",
+          "    pm.cookies.set('accessToken', pm.environment.get('access_token'), {",
+          "        path: '/',",
+          "        domain: pm.request.url.host.join('.')",
+          "    });",
+          "}",
+          "",
+          "// For the refreshToken, it's already set as an Authorization header in each request"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// If a new accessToken is returned in the response, save it to the environment",
+          "if (pm.response.headers.get('Authorization')) {",
+          "    pm.environment.set('refresh_token', pm.response.headers.get('Authorization'));",
+          "}",
+          "",
+          "// Save the accessToken from cookies if present",
+          "const cookies = pm.cookies.getAll();",
+          "const accessTokenCookie = cookies.find(cookie => cookie.name === 'accessToken');",
+          "if (accessTokenCookie) {",
+          "    pm.environment.set('access_token', accessTokenCookie.value);",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000/api/v1",
+      "type": "string"
+    }
+  ]
+}
