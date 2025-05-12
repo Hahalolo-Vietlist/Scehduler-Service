@@ -1,5 +1,5 @@
-const prisma = require('../../config/db');
 const schedulerService = require('./scheduler.service');
+const jobRepository = require('./scheduler.repo');
 const logger = require('../../utils/logger');
 
 /**
@@ -7,12 +7,8 @@ const logger = require('../../utils/logger');
  */
 exports.getAllJobs = async (req, res) => {
   try {
-    // Get all jobs
-    const jobs = await prisma.job.findMany({
-      orderBy: {
-        createdAt: 'desc'
-      }
-    });
+    // Get all jobs from the repository
+    const jobs = await jobRepository.findAllJobs();
     
     // Convert the database jobs to the format expected by the client
     const formattedJobs = jobs.map(job => ({
@@ -86,24 +82,22 @@ exports.createJob = async (req, res) => {
     // In a real implementation, this would come from the user authentication
     const createdBy = req.user?.name || 'admin';
     
-    // Create the job in the database
-    const newJob = await prisma.job.create({
-      data: {
-        name,
-        apiUrl,
-        method,
-        headers,
-        body,
-        interval,
-        timezone,
-        enabled,
-        targetServiceClientId,
-        targetServiceSecret,
-        createdBy
-      }
+    // Create the job in the database via repository
+    const newJob = await jobRepository.createJob({
+      name,
+      apiUrl,
+      method,
+      headers,
+      body,
+      interval,
+      timezone,
+      enabled,
+      targetServiceClientId,
+      targetServiceSecret,
+      createdBy
     });
     
-    // Schedule the job
+    // Schedule the job using the service
     const scheduledJob = await schedulerService.createJobFromDb(newJob);
     
     // Don't expose the secret in the response
@@ -135,12 +129,8 @@ exports.getJobById = async (req, res) => {
   try {
     const { id } = req.params;
     
-    // Find the job in the database
-    const job = await prisma.job.findUnique({
-      where: {
-        id
-      }
-    });
+    // Find the job in the database via repository
+    const job = await jobRepository.findJobById(id);
     
     if (!job) {
       return res.status(404).json({
@@ -193,12 +183,8 @@ exports.updateJob = async (req, res) => {
       targetServiceSecret
     } = req.body;
     
-    // Check if the job exists
-    const existingJob = await prisma.job.findUnique({
-      where: {
-        id
-      }
-    });
+    // Check if the job exists via repository
+    const existingJob = await jobRepository.findJobById(id);
     
     if (!existingJob) {
       return res.status(404).json({
@@ -213,27 +199,25 @@ exports.updateJob = async (req, res) => {
     // Get user information for updatedBy field
     const updatedBy = req.user?.name || 'admin';
     
-    // Update the job in the database
-    const updatedJob = await prisma.job.update({
-      where: {
-        id
-      },
-      data: {
-        name: name !== undefined ? name : undefined,
-        apiUrl: apiUrl !== undefined ? apiUrl : undefined,
-        method: method !== undefined ? method : undefined,
-        headers: headers !== undefined ? headers : undefined,
-        body: body !== undefined ? body : undefined,
-        interval: interval !== undefined ? interval : undefined,
-        timezone: timezone !== undefined ? timezone : undefined,
-        enabled: enabled !== undefined ? enabled : undefined,
-        targetServiceClientId: targetServiceClientId !== undefined ? targetServiceClientId : undefined,
-        targetServiceSecret: targetServiceSecret !== undefined ? targetServiceSecret : undefined,
-        updatedBy
-      }
-    });
+    // Prepare update data
+    const updateData = {
+      updatedBy,
+      ...(name !== undefined && { name }),
+      ...(apiUrl !== undefined && { apiUrl }),
+      ...(method !== undefined && { method }),
+      ...(headers !== undefined && { headers }),
+      ...(body !== undefined && { body }),
+      ...(interval !== undefined && { interval }),
+      ...(timezone !== undefined && { timezone }),
+      ...(enabled !== undefined && { enabled }),
+      ...(targetServiceClientId !== undefined && { targetServiceClientId }),
+      ...(targetServiceSecret !== undefined && { targetServiceSecret })
+    };
     
-    // Update the job in the scheduler
+    // Update the job in the database via repository
+    const updatedJob = await jobRepository.updateJob(id, updateData);
+    
+    // Update the job in the scheduler service
     if (updatedJob.enabled) {
       await schedulerService.updateJob(updatedJob);
     } else {
@@ -269,12 +253,8 @@ exports.deleteJob = async (req, res) => {
   try {
     const { id } = req.params;
     
-    // Check if the job exists
-    const existingJob = await prisma.job.findUnique({
-      where: {
-        id
-      }
-    });
+    // Check if the job exists via repository
+    const existingJob = await jobRepository.findJobById(id);
     
     if (!existingJob) {
       return res.status(404).json({
@@ -286,15 +266,11 @@ exports.deleteJob = async (req, res) => {
       });
     }
     
-    // Stop the job in the scheduler
+    // Stop the job in the scheduler service
     await schedulerService.deleteJob(id);
     
-    // Delete the job from the database
-    await prisma.job.delete({
-      where: {
-        id
-      }
-    });
+    // Delete the job from the database via repository
+    await jobRepository.deleteJob(id);
     
     return res.status(200).json({
       success: true,
@@ -320,12 +296,8 @@ exports.pauseJob = async (req, res) => {
     const { id } = req.params;
     const updatedBy = req.user?.name || 'admin';
     
-    // Check if the job exists
-    const existingJob = await prisma.job.findUnique({
-      where: {
-        id
-      }
-    });
+    // Check if the job exists via repository
+    const existingJob = await jobRepository.findJobById(id);
     
     if (!existingJob) {
       return res.status(404).json({
@@ -337,7 +309,7 @@ exports.pauseJob = async (req, res) => {
       });
     }
     
-    // Pause the job in the scheduler
+    // Pause the job in the scheduler service
     const result = await schedulerService.pauseJob(id);
     
     if (!result) {
@@ -350,15 +322,10 @@ exports.pauseJob = async (req, res) => {
       });
     }
     
-    // Update the job in the database
-    await prisma.job.update({
-      where: {
-        id
-      },
-      data: {
-        enabled: false,
-        updatedBy
-      }
+    // Update the job in the database via repository
+    await jobRepository.updateJob(id, {
+      enabled: false,
+      updatedBy
     });
     
     return res.status(200).json({
@@ -385,12 +352,8 @@ exports.resumeJob = async (req, res) => {
     const { id } = req.params;
     const updatedBy = req.user?.name || 'admin';
     
-    // Check if the job exists
-    const existingJob = await prisma.job.findUnique({
-      where: {
-        id
-      }
-    });
+    // Check if the job exists via repository
+    const existingJob = await jobRepository.findJobById(id);
     
     if (!existingJob) {
       return res.status(404).json({
@@ -402,7 +365,7 @@ exports.resumeJob = async (req, res) => {
       });
     }
     
-    // Resume the job in the scheduler
+    // Resume the job in the scheduler service
     const result = await schedulerService.resumeJob(id);
     
     if (!result) {
@@ -415,15 +378,10 @@ exports.resumeJob = async (req, res) => {
       });
     }
     
-    // Update the job in the database
-    await prisma.job.update({
-      where: {
-        id
-      },
-      data: {
-        enabled: true,
-        updatedBy
-      }
+    // Update the job in the database via repository
+    await jobRepository.updateJob(id, {
+      enabled: true,
+      updatedBy
     });
     
     return res.status(200).json({
@@ -449,12 +407,8 @@ exports.runJobNow = async (req, res) => {
   try {
     const { id } = req.params;
     
-    // Check if the job exists
-    const existingJob = await prisma.job.findUnique({
-      where: {
-        id
-      }
-    });
+    // Check if the job exists via repository
+    const existingJob = await jobRepository.findJobById(id);
     
     if (!existingJob) {
       return res.status(404).json({
@@ -466,7 +420,7 @@ exports.runJobNow = async (req, res) => {
       });
     }
     
-    // Run the job immediately
+    // Run the job immediately via service
     const result = await schedulerService.runJobNow(id);
     
     if (!result) {

@@ -4,7 +4,7 @@ const logger = require('../../utils/logger');
 const path = require('path');
 const { Worker } = require('worker_threads');
 const { DEFAULT_TIMEOUT } = require('../../utils/constants');
-const prisma = require('../../config/db');
+const jobRepository = require('./scheduler.repo');
 
 // Configure the worker pool size based on CPU cores
 const os = require('os');
@@ -66,8 +66,8 @@ const callEndpoint = async (job) => {
             jobs.set(job.id, memoryJob);
           }
           
-          // Update job execution stats in database
-          updateJobExecutionStats(job.id, {
+          // Update job execution stats in database via repository
+          jobRepository.updateJobExecutionStats(job.id, {
             lastRun: new Date(),
             lastRunStatus: 'error',
             lastRunError: 'Execution timed out',
@@ -103,8 +103,8 @@ const callEndpoint = async (job) => {
             jobs.set(job.id, memoryJob);
           }
           
-          // Update job in database
-          updateJobExecutionStats(job.id, {
+          // Update job in database via repository
+          jobRepository.updateJobExecutionStats(job.id, {
             lastRun: now,
             lastRunStatus: 'success',
             lastRunError: null,
@@ -133,8 +133,8 @@ const callEndpoint = async (job) => {
             jobs.set(job.id, memoryJob);
           }
           
-          // Update job in database
-          updateJobExecutionStats(job.id, {
+          // Update job in database via repository
+          jobRepository.updateJobExecutionStats(job.id, {
             lastRun: now,
             lastRunStatus: 'error',
             lastRunError: result.error,
@@ -166,8 +166,8 @@ const callEndpoint = async (job) => {
           jobs.set(job.id, memoryJob);
         }
         
-        // Update job in database
-        updateJobExecutionStats(job.id, {
+        // Update job in database via repository
+        jobRepository.updateJobExecutionStats(job.id, {
           lastRun: new Date(),
           lastRunStatus: 'error',
           lastRunError: `Worker error: ${error.message}`,
@@ -203,8 +203,8 @@ const callEndpoint = async (job) => {
         jobs.set(job.id, memoryJob);
       }
       
-      // Update job in database
-      updateJobExecutionStats(job.id, {
+      // Update job in database via repository
+      jobRepository.updateJobExecutionStats(job.id, {
         lastRun: new Date(),
         lastRunStatus: 'error',
         lastRunError: `Failed to create worker: ${error.message}`,
@@ -217,22 +217,6 @@ const callEndpoint = async (job) => {
       reject(error);
     }
   });
-};
-
-/**
- * Update job execution stats in the database
- * @param {string} id - Job ID
- * @param {Object} stats - Stats to update
- */
-const updateJobExecutionStats = async (id, stats) => {
-  try {
-    await prisma.job.update({
-      where: { id },
-      data: stats
-    });
-  } catch (error) {
-    logger.error(`Failed to update job stats in database: ${error.message}`);
-  }
 };
 
 /**
@@ -286,12 +270,8 @@ exports.initializeScheduler = async () => {
   logger.info(`Initializing scheduler service with max ${MAX_WORKERS} worker threads`);
   
   try {
-    // Get all active jobs from the database
-    const dbJobs = await prisma.job.findMany({
-      where: {
-        enabled: true
-      }
-    });
+    // Get all active jobs from the database via repository
+    const dbJobs = await jobRepository.findEnabledJobs();
     
     if (dbJobs.length > 0) {
       logger.info(`Found ${dbJobs.length} jobs in database`);
