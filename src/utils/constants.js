@@ -42,3 +42,6 @@ exports.REDIS_KEYS = {
 
 // Default timeout for API calls in milliseconds
 exports.DEFAULT_TIMEOUT = 30000; // 30 seconds 
+
+// Auth queue
+exports.AUTH_QUEUE = process.env.AUTH_QUEUE || AUTH_QUEUE.fifo;

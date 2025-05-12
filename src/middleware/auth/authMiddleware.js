@@ -45,7 +45,7 @@ const authenticate = async (req, res, next) => {
 
         if (!isAccessTokenValid && refreshToken) {
             const serviceId = uuidv4();
-            await storeUniqueId(serviceId, 'subscription-service', 'auth-queue', 15, { refreshToken });
+            await storeUniqueId(serviceId, 'scheduler-service', 'auth-queue', 15, { refreshToken });
 
             await sendAuthEvent(AUTH_REFRESH_TOKEN_ACTION, { refreshToken, serviceId });
             const authResponse = await receiveAuthResponse(serviceId, 25000);
@@ -72,7 +72,7 @@ const authenticate = async (req, res, next) => {
         }
 
         // const serviceId = uuidv4();
-        // await storeUniqueId(serviceId, 'subscription-service', 'auth-queue', 15, { userId: decodedToken.userId });
+        // await storeUniqueId(serviceId, 'scheduler-service', 'auth-queue', 15, { userId: decodedToken.userId });
 
         // await sendAuthEvent(AUTH_VERIFY_USER_ACTION, { userId: decodedToken.userId, serviceId });
         // const userVerificationResponse = await receiveAuthResponse(serviceId, 25000);

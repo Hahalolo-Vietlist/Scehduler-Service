@@ -5,7 +5,7 @@ const authenticate = require('../../middleware/auth/authMiddleware');
 const checkRole = require('../../middleware/auth/checkRole');
 
 // Admin authentication middleware
-// router.use(authenticate);
+router.use(authenticate);
 // router.use(checkRole({
 //     allowedRoles: ["admin", "super_admin"],
 //     requireActiveSubscription: false,
