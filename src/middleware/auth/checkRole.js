@@ -11,8 +11,11 @@ const checkRole = (options = {}) => {
   const {
     allowedRoles = [],
     requireActiveSubscription = false,
+    requiredSubscription = null,
     requiredPermissions = []
   } = options;
+
+  console.log(`Checking permissions for user:`, requiredPermissions);
 
   // Convert single values to arrays for consistent handling
   const roles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
@@ -32,8 +35,23 @@ const checkRole = (options = {}) => {
 
       // 3. Check specific permissions if required
       if (permissions.length > 0) {
+        console.log(`Checking permissions for user by req.user.permissions :`, req.user.permissions);
+        
+        // Ensure permissions is an array or convert it to one if possible
+        let userPermissions = [];
+        if (req.user.permissions) {
+          if (Array.isArray(req.user.permissions)) {
+            userPermissions = req.user.permissions;
+          } else if (typeof req.user.permissions === 'string') {
+            userPermissions = [req.user.permissions];
+          } else if (typeof req.user.permissions === 'object') {
+            // If it's an object with permission values
+            userPermissions = Object.values(req.user.permissions);
+          }
+        }
+        
         const hasAllPermissions = permissions.every(permission => 
-          req.user.permissions && req.user.permissions.includes(permission)
+          userPermissions.includes(permission)
         );
         
         if (!hasAllPermissions) {
@@ -51,10 +69,19 @@ const checkRole = (options = {}) => {
         }
       }
 
+      // 5. Check which subscription is required by subscription uniqueIdentifier
+      if (requiredSubscription) {
+        const validSubscription = req.user.subscription && req.user.subscription.uniqueIdentifier === requiredSubscription;
+
+        if (!validSubscription) {
+          return next(new AppError('Please use valid subscription', 402, 'INVALID_SUBSCRIPTION'));
+        }
+      }
+
       // All checks passed, continue to the next middleware
       next();
     } catch (error) {
-      next(new AppError('Authorization check failed', 500, 'AUTH_CHECK_ERROR'));
+      next(new AppError(error.message, 500, 'AUTH_CHECK_ERROR'));
     }
   };
 };
