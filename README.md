@@ -1,4 +1,4 @@
-# Scheduler Service
+# Scheduler Service test
 
 A NodeJS service for scheduling API calls to external services at specified intervals using node-cron, worker threads, and PostgreSQL database.
 
