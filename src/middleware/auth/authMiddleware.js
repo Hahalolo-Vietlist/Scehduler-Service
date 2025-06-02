@@ -44,11 +44,12 @@ const authenticate = async (req, res, next) => {
         }
 
         if (!isAccessTokenValid && refreshToken) {
-            const serviceId = uuidv4();
-            await storeUniqueId(serviceId, 'scheduler-service', 'auth-queue', 15, { refreshToken });
+            // const serviceId = uuidv4();
+            // await storeUniqueId(serviceId, 'scheduler-service', 'auth-queue', 15, { refreshToken });
 
-            await sendAuthEvent(AUTH_REFRESH_TOKEN_ACTION, { refreshToken, serviceId });
-            const authResponse = await receiveAuthResponse(serviceId, 25000);
+            // await sendAuthEvent(AUTH_REFRESH_TOKEN_ACTION, { refreshToken, serviceId });
+            // const authResponse = await receiveAuthResponse(serviceId, 25000);
+            const authResponse = await getNewAccessRefreshToken(refreshToken);
 
             if (!authResponse || authResponse?.status !== 'success') {
                 return next(new AppError('Failed to refresh authentication token', 401, 'AUTH_FAILED'));
@@ -71,15 +72,10 @@ const authenticate = async (req, res, next) => {
             return next(new AppError('Authentication failed - invalid or expired tokens', 401, 'AUTH_FAILED'));
         }
 
-        // const serviceId = uuidv4();
-        // await storeUniqueId(serviceId, 'scheduler-service', 'auth-queue', 15, { userId: decodedToken.userId });
-
-        // await sendAuthEvent(AUTH_VERIFY_USER_ACTION, { userId: decodedToken.userId, serviceId });
-        // const userVerificationResponse = await receiveAuthResponse(serviceId, 25000);
-
-        // if (!userVerificationResponse || userVerificationResponse?.status !== 'success') {
-        //     return next(new AppError('User account is inactive or suspended', 403, 'USER_INACTIVE'));
-        // }
+        const userStatus = decodedToken?.status;
+        if (userStatus !== 'active') {
+            return next(new AppError('User account is inactive or suspended', 403, 'USER_INACTIVE'));
+        }
 
         req.user = {
             userId: decodedToken.userId,
@@ -97,5 +93,34 @@ const authenticate = async (req, res, next) => {
         next(new AppError('Authentication failed - server error', 500, 'AUTH_SERVER_ERROR'));
     }
 };
+
+const getNewAccessRefreshToken = async (refreshToken) => {
+    try {
+        if (!refreshToken) {
+            return next(new AppError('No refresh token provided', 401, 'AUTH_REQUIRED'));
+        }
+
+        const baseUrl = process.env.AUTH_SERVICE_URL;
+        const authServiceUrl = `${baseUrl}/api/v1/auth/refresh-token`;
+
+        const response = await axios.get(authServiceUrl, {
+            headers: {
+                'Content-Type': 'application/json',
+                // 'Authorization': `Bearer ${refreshToken}`
+                'x-refresh-token': refreshToken
+            }
+        });
+
+        if (response.status !== 200) {
+            return next(new AppError('Failed to refresh access token', 401, 'AUTH_FAILED'));
+        }
+
+        return response.data;
+
+    } catch (error) {
+        logger.error(`Error refreshing access token: ${error.message}`, { stack: error.stack });
+        return next(new AppError('Failed to refresh access token', 500, 'AUTH_SERVER_ERROR'));
+    }
+}
 
 module.exports = authenticate;
