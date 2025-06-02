@@ -6,6 +6,7 @@ const { sendAuthEvent, receiveAuthResponse } = require('../../sqs/authSqsClient'
 const { storeUniqueId, isUniqueIdValid } = require('../../utils/redisServiceStore');
 const { AUTH_REFRESH_TOKEN_ACTION, AUTH_VERIFY_USER_ACTION } = require('../../config/sqsOperationConfig');
 const tokenHelper = require('./tokenHelper');
+const axios = require('axios');
 
 const authenticate = async (req, res, next) => {
     try {
